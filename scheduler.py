@@ -13,7 +13,7 @@ def init(data):
     initializeScheduleData(data)
     data.cellwidth = (data.width-data.leftmargin-data.margin)//data.rows
     data.cellheight = (data.height-data.margin)//data.cols
-    data.cmap = colormaps['Blues'] #bone_r is good too
+    data.cmap = colormaps['RdYlGn']
     createMenu(data)
     createList(data)
     createButtons(data)
@@ -281,6 +281,13 @@ def invertClick(data):
             else:
                 lb.selection_set(i)
 
+def selectAvailableSlotsExceptBusy(data, busy_slots):
+    for lb in data.lbs:
+        lb.selection_set(0, END)
+    for day_index, start_idx, end_idx in busy_slots:
+        for slot_index in range(start_idx, end_idx):
+            data.lbs[day_index].selection_clear(slot_index)
+
 # loads individual schedule from .ics file
 def loadics(data, fname=None):
     if not fname:
@@ -288,7 +295,7 @@ def loadics(data, fname=None):
 
     if fname == None or fname == '':
         return
-    ics_file = open(fname)
+    ics_file = open(fname, 'rb')
     ics_data = ics_file.read()
     ics_file.close()
 
@@ -297,12 +304,9 @@ def loadics(data, fname=None):
         data.lbs[i].selection_clear(0, END)
 
     busy_slots = parseRecurringBusySlots(
-        ics_data, data.day_names, data.start, data.step
+        ics_data, data.day_names, data.start, data.step, data.cols
     )
-    for day_index, start_idx, end_idx in busy_slots:
-        for slot_index in range(start_idx, end_idx):
-            data.lbs[day_index].selection_set(slot_index)
-    invertClick(data)
+    selectAvailableSlotsExceptBusy(data, busy_slots)
 
 
 #---------------------#
