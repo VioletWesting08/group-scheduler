@@ -4,7 +4,7 @@ DEFAULT_STEP_HOURS = 0.5
 DAY_NAMES = ['MO', 'TU', 'WE', 'TH', 'FR', 'SA', 'SU']
 
 
-def formatTimeLabel(hour, minute):
+def format_time_label(hour, minute):
     suffix = 'AM' if hour < 12 else 'PM'
     display_hour = hour % 12
     if display_hour == 0:
@@ -12,27 +12,27 @@ def formatTimeLabel(hour, minute):
     return f'{display_hour}:{minute:02d} {suffix}'
 
 
-def buildTimeLabels(start, end, step):
+def build_time_labels(start, end, step):
     labels = []
     t = start
     while t < end:
         mins = int((t % 1) * 60)
-        labels.append(formatTimeLabel(int(t) % 24, mins))
+        labels.append(format_time_label(int(t) % 24, mins))
         t += step
     return labels
 
 
-def buildEmptyWeek(day_count, slot_count):
+def build_empty_week(day_count, slot_count):
     return [[set() for i in range(slot_count)] for j in range(day_count)]
 
 
-def initializeScheduleData(data):
+def initialize_schedule_data(data):
     data.start = DEFAULT_START_HOUR
     data.end = DEFAULT_END_HOUR
     data.step = DEFAULT_STEP_HOURS
     data.slots = int((data.end - data.start) / data.step)
-    data.times = buildTimeLabels(data.start, data.end, data.step)
-    data.week = buildEmptyWeek(len(DAY_NAMES), data.slots)
+    data.times = build_time_labels(data.start, data.end, data.step)
+    data.week = build_empty_week(len(DAY_NAMES), data.slots)
     data.rows = len(DAY_NAMES)
     data.cols = len(data.week[0])
     data.name = ''
