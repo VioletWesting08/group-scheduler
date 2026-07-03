@@ -385,8 +385,8 @@ def run(width=300, height=300):
     init(data)
     
     # set up events
-    root.bind("<Motion>", lambda event: rootHover(event, data))
-    root.bind("<Button-1>", lambda event: rootClick(event, data))
+    canvas.bind("<Motion>", lambda event: rootHover(event, data))
+    canvas.bind("<Button-1>", lambda event: rootClick(event, data))
     
     # and launch the app
     root.mainloop()  # blocks until window is closed
