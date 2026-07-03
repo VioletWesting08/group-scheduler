@@ -3,7 +3,7 @@ from tkinter import filedialog
 import datetime
 import pickle
 from math import log, ceil, floor
-from matplotlib import cm
+from matplotlib import colormaps
 import re
 
 def init(data):
@@ -28,7 +28,7 @@ def init(data):
     data.names = []
     data.groups = dict()
     data.day_names = ['MO', 'TU', 'WE', 'TH', 'FR', 'SA', 'SU']
-    data.cmap = cm.get_cmap('Blues') #bone_r is good too
+    data.cmap = colormaps['Blues'] #bone_r is good too
     createMenu(data)
     createList(data)
     createButtons(data)
@@ -63,7 +63,7 @@ def createMenu(data):
                               command=lambda: toggledAvailabilityShow(data))
     data.menubar.add_cascade(menu=view_menu, label='View')
     theme_menu = Menu(data.menubar)
-    for theme in cm.cmap_d.keys():
+    for theme in sorted(colormaps):
         theme_menu.add_command(label=theme,
                                command=lambda theme=theme: setTheme(data, theme))
     data.menubar.add_cascade(menu=theme_menu, label='Theme')
@@ -71,7 +71,7 @@ def createMenu(data):
 
 # change color scheme
 def setTheme(data, theme):
-    data.cmap = cm.get_cmap(theme)
+    data.cmap = colormaps[theme]
     redrawRoot(data.canvas, data)
 
 # restricts selection to desired group

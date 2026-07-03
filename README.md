@@ -8,8 +8,33 @@ Basically functions similarly to when2meet, but allows for selecting only certai
 Runs on Python 3.
 
 # How to Use
+## Setup
+This project runs on Python 3. It uses `tkinter` for the desktop app and
+`matplotlib` for color maps.
+
+Create and activate a virtual environment before installing dependencies.
+
+Windows PowerShell:
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt
+python scheduler.py
+```
+
+macOS:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python3 -m pip install -r requirements.txt
+python3 scheduler.py
+```
+
 ## Running the Application
-Open the application by running 'python3 scheduler.py' from the command line.
+After setup, open the application by running `python scheduler.py` on Windows
+or `python3 scheduler.py` on macOS.
 
 ## Adding Schedules
 To add/edit someone's schedule manually, type their name into the text input near the bottom, and press enter (or click the new/edit button).
