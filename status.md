@@ -9,7 +9,7 @@
 - [ ] Put Available and Unavailable columns side by side.
 - [x] Lock the availability panel to a slot when that slot is clicked.
 - [x] Add scrollbars to the Available and Unavailable columns.
-- [ ] Low priority: highlight the hovered schedule slot for better UI feedback.
+- [x] Low priority: highlight the hovered schedule slot for better UI feedback.
 - [ ] Add functionality to combine multiple `.ics` files into one `.ics` file that can be imported into Google Calendar for easier viewing.
 - [ ] Do small code cleanup.
 - [ ] Clarify available vs. busy naming and behavior.

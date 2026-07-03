@@ -14,6 +14,8 @@ def init(data):
     data.cellwidth = (data.width-data.leftmargin-data.margin)//data.rows
     data.cellheight = (data.height-data.margin)//data.cols
     data.availability_locked = False
+    data.hover_cell = None
+    data.locked_cell = None
     data.cmap = colormaps['RdYlGn']
     createMenu(data)
     createList(data)
@@ -246,21 +248,27 @@ def rootHover(event, data):
     if data.availability_locked:
         return
     cell = scheduleCellFromEvent(event, data)
+    data.hover_cell = cell
     if cell:
         setAvailabilityPanel(data, *cell)
     else:
         setAvailabilityPanel(data)
+    redrawRoot(data.canvas, data)
 
 def rootClick(event, data):
     cell = scheduleCellFromEvent(event, data)
     if cell:
         data.availability_locked = True
+        data.locked_cell = cell
+        data.hover_cell = None
         setAvailabilityPanel(data, *cell)
         data.availabilityStatus.set("Locked")
     else:
         data.availability_locked = False
+        data.locked_cell = None
         data.availabilityStatus.set("")
         setAvailabilityPanel(data)
+    redrawRoot(data.canvas, data)
     
 
 # draws main window
@@ -288,6 +296,12 @@ def redrawRoot(canvas, data):
             canvas.create_text((x0+x1)/2, (y0+y1)/2, text=str(len(names)-n), fill=textfill)
             if r == 0:
                 canvas.create_text(x0-5, y0, text=str(data.times[c]), anchor=E)
+            if data.hover_cell == (r, c):
+                canvas.create_rectangle(x0+1, y0+1, x1-1, y1-1,
+                                        outline='black', width=2)
+            if data.locked_cell == (r, c):
+                canvas.create_rectangle(x0+2, y0+2, x1-2, y1-2,
+                                        outline='gold', width=4)
     canvas.update()
 
 
