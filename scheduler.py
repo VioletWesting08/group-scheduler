@@ -316,37 +316,39 @@ def redrawRoot(canvas, data):
 def indvScreenInit(data):
     name_label = Label(data.top, text=data.name)
     name_label.grid(row=1, column=1, columnspan=7)
+    instruction = Label(data.top, text="Highlight busy slots.")
+    instruction.grid(row=2, column=1, columnspan=7)
     data.lbs = []
     for i in range(7):
         day_label = Label(data.top, text=data.day_names[i].title(), anchor=S, bg='gray92')
-        day_label.grid(row=2, column=i+1, sticky=W+E)
+        day_label.grid(row=3, column=i+1, sticky=W+E)
         lb = Listbox(data.top, selectmode=EXTENDED, exportselection=False,
                      height=32, width=10)
         data.lbs.append(lb)
-        lb.grid(row=3, column=i+1)
+        lb.grid(row=4, column=i+1)
         for t in data.times:
             lb.insert(END, str(t))
     bdone = Button(data.top, text="done", command=lambda: doneClick(data))
-    bdone.grid(row=4, column=5, columnspan=2)
+    bdone.grid(row=5, column=5, columnspan=2)
     binvert = Button(data.top, text="invert", command=lambda: invertClick(data))
-    binvert.grid(row=4, column=3, columnspan=3)
+    binvert.grid(row=5, column=3, columnspan=3)
     bload = Button(data.top, text="load ics", command=lambda: loadics(data))
-    bload.grid(row=4, column=2, columnspan=2)
+    bload.grid(row=5, column=2, columnspan=2)
     data.top.bind('<Return>', lambda _: doneClick(data))
     if data.name in data.names:
         loadSchedule(data)
 
-# load individual schedule from overall schedule
+# load individual busy slots from overall availability schedule
 def loadSchedule(data):
     for i in range(7):
         lb = data.lbs[i]
         day = data.week[i]
         for slot in range(len(day)):
-            if data.name in day[slot]:
+            if data.name not in day[slot]:
                 lb.selection_set(slot)
                 
 # individual screen 'done' button action
-# adds individual schedule to overall schedule
+# adds individual availability to overall schedule from selected busy slots
 def doneClick(data):
     if data.name not in data.names:
         data.names.append(data.name)
@@ -356,14 +358,14 @@ def doneClick(data):
         lb = data.lbs[i]
         for t in range(data.cols):
             if lb.selection_includes(t):
+                data.week[i][t].discard(data.name)
+            else:
                 data.week[i][t].add(data.name)
-            elif data.name in data.week[i][t]:
-                data.week[i][t].remove(data.name)
     data.top.destroy()
     redrawRoot(data.canvas, data)
 
 # individual screen 'invert' button action
-# inverts selected availability
+# inverts selected busy slots
 def invertClick(data):
     for lb in data.lbs:
         for i in range(data.cols):
@@ -372,12 +374,10 @@ def invertClick(data):
             else:
                 lb.selection_set(i)
 
-def selectAvailableSlotsExceptBusy(data, busy_slots):
-    for lb in data.lbs:
-        lb.selection_set(0, END)
+def selectBusySlots(data, busy_slots):
     for day_index, start_idx, end_idx in busy_slots:
         for slot_index in range(start_idx, end_idx):
-            data.lbs[day_index].selection_clear(slot_index)
+            data.lbs[day_index].selection_set(slot_index)
 
 # loads individual schedule from .ics file
 def loadics(data, fname=None):
@@ -397,7 +397,7 @@ def loadics(data, fname=None):
     busy_slots = parseRecurringBusySlots(
         ics_data, data.day_names, data.start, data.step, data.cols
     )
-    selectAvailableSlotsExceptBusy(data, busy_slots)
+    selectBusySlots(data, busy_slots)
 
 
 # runs overall application
