@@ -118,14 +118,31 @@ def createAvailabilityPanel(data):
 def createScrollableText(parent, row, column, padx=0):
     frame = Frame(parent)
     frame.grid(row=row, column=column, sticky=N+S+W+E, padx=padx)
-    text = Text(frame, width=18, height=25, wrap=WORD)
-    scrollbar = Scrollbar(frame, orient=VERTICAL, command=text.yview)
-    text.configure(yscrollcommand=scrollbar.set, state=DISABLED)
+    text = Text(frame, width=18, height=25, wrap=NONE)
+    yscrollbar = Scrollbar(frame, orient=VERTICAL, command=text.yview)
+    xscrollbar = Scrollbar(frame, orient=HORIZONTAL, command=text.xview)
+    text.configure(yscrollcommand=yscrollbar.set,
+                   xscrollcommand=xscrollbar.set,
+                   state=DISABLED)
     text.grid(row=0, column=0, sticky=N+S+W+E)
-    scrollbar.grid(row=0, column=1, sticky=N+S)
+    yscrollbar.grid(row=0, column=1, sticky=N+S)
+    xscrollbar.grid(row=1, column=0, sticky=E+W)
+    text.bind("<MouseWheel>", scrollTextVertical)
+    text.bind("<Shift-MouseWheel>", scrollTextHorizontal)
     frame.rowconfigure(0, weight=1)
     frame.columnconfigure(0, weight=1)
     return text
+
+def scrollTextVertical(event):
+    event.widget.yview_scroll(_scrollUnits(event), UNITS)
+    return "break"
+
+def scrollTextHorizontal(event):
+    event.widget.xview_scroll(_scrollUnits(event), UNITS)
+    return "break"
+
+def _scrollUnits(event):
+    return -3 * int(event.delta / 120)
 
 # main screen 'new' button action
 # brings up individual screen
