@@ -114,6 +114,10 @@ def createAvailabilityPanel(data):
     Label(panel, textvar=data.availabilityStatus).grid(
         row=2, column=0, columnspan=2, sticky=W+E, pady=(10, 0)
     )
+    Label(panel, text="Click a slot to lock. Click outside the grid to unlock.",
+          wraplength=220, justify=CENTER).grid(
+        row=3, column=0, columnspan=2, sticky=W+E, pady=(5, 0)
+    )
     panel.columnconfigure(0, weight=1)
     panel.columnconfigure(1, weight=1)
 
