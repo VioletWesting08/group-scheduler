@@ -1,50 +1,24 @@
 from tkinter import *
 from tkinter import filedialog
-import datetime
 import pickle
-from math import log, ceil, floor
+from math import log
 from matplotlib import colormaps
-import re
+
+from ics_utils import parseRecurringBusySlots
+from schedule_data import initializeScheduleData
 
 def init(data):
     data.margin = 30
     data.leftmargin = 75
-    data.start = 9
-    data.end = 24
-    data.step = 0.5
-    data.slots = int((data.end - data.start) / data.step)
-    t = data.start
-    data.times = []
-    while t < data.end:
-        mins = int((t % 1) * 60)
-        data.times.append(formatTimeLabel(int(t) % 24, mins))
-        t += data.step
-    data.week = [[set() for i in range(data.slots)] for j in range(7)]
-    data.rows = 7
-    data.cols = len(data.week[0])
+    initializeScheduleData(data)
     data.cellwidth = (data.width-data.leftmargin-data.margin)//data.rows
     data.cellheight = (data.height-data.margin)//data.cols
-    data.name = ''
-    data.names = []
-    data.groups = dict()
-    data.day_names = ['MO', 'TU', 'WE', 'TH', 'FR', 'SA', 'SU']
     data.cmap = colormaps['Blues'] #bone_r is good too
     createMenu(data)
     createList(data)
     createButtons(data)
     redrawRoot(data.canvas, data)
 
-
-#---------------#
-# color helpers #
-#---------------#
-
-def formatTimeLabel(hour, minute):
-    suffix = 'AM' if hour < 12 else 'PM'
-    display_hour = hour % 12
-    if display_hour == 0:
-        display_hour = 12
-    return f'{display_hour}:{minute:02d} {suffix}'
 
 # converts (0, 1) rgb values to hex
 def normrgb2hex(r, g, b, a=None):
@@ -314,7 +288,6 @@ def loadics(data, fname=None):
 
     if fname == None or fname == '':
         return
-    infile = open(fname, 'rb')
     ics_file = open(fname)
     ics_data = ics_file.read()
     ics_file.close()
@@ -322,15 +295,13 @@ def loadics(data, fname=None):
     # reset in case there is already data
     for i in range(len(data.day_names)):
         data.lbs[i].selection_clear(0, END)
-    
-    pat = re.compile(r'DTSTART:\d+?T(\d\d)(\d\d).*?DTEND:\d+?T(\d\d)(\d\d).+?BYDAY=(\S+)', re.DOTALL)
-    for (start_h, start_m, end_h, end_m, days) in re.findall(pat, ics_data):
-        for d in days.split(','):
-            i = data.day_names.index(d)
-            start_idx = floor((int(start_h) - data.start + int(start_m)/60)/data.step)
-            end_idx = ceil((int(end_h) - data.start + int(end_m)/60)/data.step)
-            for j in range(start_idx, end_idx):
-                data.lbs[i].selection_set(j)
+
+    busy_slots = parseRecurringBusySlots(
+        ics_data, data.day_names, data.start, data.step
+    )
+    for day_index, start_idx, end_idx in busy_slots:
+        for slot_index in range(start_idx, end_idx):
+            data.lbs[day_index].selection_set(slot_index)
     invertClick(data)
 
 
@@ -393,4 +364,5 @@ def run(width=300, height=300):
     root.mainloop()  # blocks until window is closed
     print("bye :)")
 
-run(450, 600)
+if __name__ == "__main__":
+    run(450, 600)
