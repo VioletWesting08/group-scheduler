@@ -8,8 +8,8 @@ import re
 
 def init(data):
     data.margin = 30
-    data.leftmargin = 50
-    data.start = 8
+    data.leftmargin = 75
+    data.start = 9
     data.end = 24
     data.step = 0.5
     data.slots = int((data.end - data.start) / data.step)
@@ -17,12 +17,12 @@ def init(data):
     data.times = []
     while t < data.end:
         mins = int((t % 1) * 60)
-        data.times.append(str(datetime.time(int(t) % 24, mins))[:-3])
+        data.times.append(formatTimeLabel(int(t) % 24, mins))
         t += data.step
     data.week = [[set() for i in range(data.slots)] for j in range(7)]
     data.rows = 7
     data.cols = len(data.week[0])
-    data.cellwidth = (data.width-2*data.margin)//data.rows
+    data.cellwidth = (data.width-data.leftmargin-data.margin)//data.rows
     data.cellheight = (data.height-data.margin)//data.cols
     data.name = ''
     data.names = []
@@ -38,6 +38,14 @@ def init(data):
 #---------------#
 # color helpers #
 #---------------#
+
+def formatTimeLabel(hour, minute):
+    suffix = 'AM' if hour < 12 else 'PM'
+    display_hour = hour % 12
+    if display_hour == 0:
+        display_hour = 12
+    return f'{display_hour}:{minute:02d} {suffix}'
+
 # converts (0, 1) rgb values to hex
 def normrgb2hex(r, g, b, a=None):
     return "#{:02x}{:02x}{:02x}".format(int(255*r), int(255*g), int(255*b))
@@ -370,6 +378,7 @@ def run(width=300, height=300):
     
     # create the root and the canvas
     root = Tk()
+    root.geometry("+0+0")
     canvas = Canvas(root, width=data.width, height=data.height)
     canvas.grid(row=1, column=1, columnspan=2)
     data.canvas = canvas
@@ -384,4 +393,4 @@ def run(width=300, height=300):
     root.mainloop()  # blocks until window is closed
     print("bye :)")
 
-run(400, 650)
+run(450, 600)
