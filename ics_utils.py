@@ -7,33 +7,45 @@ from icalendar import Calendar
 
 def parseRecurringBusySlots(ics_data, day_names, start_hour, step_hours,
                             slot_count=None):
-    calendar = Calendar.from_ical(ics_data)
     busy_slots = set()
-    for event in calendar.walk('VEVENT'):
-        start = _eventDateTime(event.get('dtstart'))
-        end = _eventDateTime(event.get('dtend'))
-        if start is None:
-            continue
-        if end is None:
-            end = start + datetime.timedelta(hours=step_hours)
-        if isinstance(start, datetime.date) and not isinstance(start, datetime.datetime):
-            continue
-        if isinstance(end, datetime.date) and not isinstance(end, datetime.datetime):
-            continue
+    try:
+        calendar = Calendar.from_ical(_normalizeIcsData(ics_data))
+        for event in calendar.walk('VEVENT'):
+            start = _eventDateTime(event.get('dtstart'))
+            end = _eventDateTime(event.get('dtend'))
+            if start is None:
+                continue
+            if end is None:
+                end = start + datetime.timedelta(hours=step_hours)
+            if isinstance(start, datetime.date) and not isinstance(start, datetime.datetime):
+                continue
+            if isinstance(end, datetime.date) and not isinstance(end, datetime.datetime):
+                continue
 
-        day_index = start.weekday()
-        start_idx = _slotIndex(start, start_hour, step_hours, floor)
-        end_idx = _slotIndex(end, start_hour, step_hours, ceil)
-        _addBusySlot(
-            busy_slots, day_index, start_idx, end_idx, len(day_names),
-            slot_count
-        )
+            day_index = start.weekday()
+            start_idx = _slotIndex(start, start_hour, step_hours, floor)
+            end_idx = _slotIndex(end, start_hour, step_hours, ceil)
+            _addBusySlot(
+                busy_slots, day_index, start_idx, end_idx, len(day_names),
+                slot_count
+            )
+    except ValueError:
+        pass
 
     for busy_slot in _parseBydayBusySlots(
         ics_data, day_names, start_hour, step_hours, slot_count
     ):
         busy_slots.add(busy_slot)
     return sorted(busy_slots)
+
+
+def _normalizeIcsData(ics_data):
+    if isinstance(ics_data, bytes):
+        text = ics_data.decode('utf-8-sig', errors='replace')
+    else:
+        text = ics_data
+    text = re.sub(r'(?m)^(BEGIN|END):([A-Z]+)\s+$', r'\1:\2', text)
+    return text
 
 
 def _parseBydayBusySlots(ics_data, day_names, start_hour, step_hours,

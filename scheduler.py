@@ -13,9 +13,11 @@ def init(data):
     initializeScheduleData(data)
     data.cellwidth = (data.width-data.leftmargin-data.margin)//data.rows
     data.cellheight = (data.height-data.margin)//data.cols
+    data.availability_locked = False
     data.cmap = colormaps['RdYlGn']
     createMenu(data)
     createList(data)
+    createAvailabilityPanel(data)
     createButtons(data)
     redrawRoot(data.canvas, data)
 
@@ -38,12 +40,6 @@ def createMenu(data):
     data.menubar = Menu(data.root)
     data.menu_groups = Menu(data.menubar)
     data.menubar.add_cascade(menu=data.menu_groups, label='Groups')
-    view_menu = Menu(data.menubar)
-    data.show_availability = BooleanVar()
-    view_menu.add_checkbutton(label="Availability", onvalue=True, offvalue=False,
-                              variable=data.show_availability,
-                              command=lambda: toggledAvailabilityShow(data))
-    data.menubar.add_cascade(menu=view_menu, label='View')
     theme_menu = Menu(data.menubar)
     for theme in sorted(colormaps):
         theme_menu.add_command(label=theme,
@@ -98,6 +94,38 @@ def createList(data):
     data.list_created = True
     namelist.config(yscrollcommand=scrollbar.set)
     scrollbar.config(command=namelist.yview)
+
+def createAvailabilityPanel(data):
+    data.availabilityStatus = StringVar()
+    panel = Frame(data.root)
+    panel.grid(row=1, column=4, sticky=N+S, padx=(0, data.margin),
+               pady=(data.margin, 15))
+    Label(panel, text="Available", font="lucida-grande 12 bold").grid(
+        row=0, column=0, sticky=W+E
+    )
+    data.freeNames = createScrollableText(panel, row=1, column=0,
+                                          padx=(0, 10))
+    Label(panel, text="Unavailable", font="lucida-grande 12 bold").grid(
+        row=0, column=1, sticky=W+E
+    )
+    data.busyNames = createScrollableText(panel, row=1, column=1)
+    Label(panel, textvar=data.availabilityStatus).grid(
+        row=2, column=0, columnspan=2, sticky=W+E, pady=(10, 0)
+    )
+    panel.columnconfigure(0, weight=1)
+    panel.columnconfigure(1, weight=1)
+
+def createScrollableText(parent, row, column, padx=0):
+    frame = Frame(parent)
+    frame.grid(row=row, column=column, sticky=N+S+W+E, padx=padx)
+    text = Text(frame, width=18, height=25, wrap=WORD)
+    scrollbar = Scrollbar(frame, orient=VERTICAL, command=text.yview)
+    text.configure(yscrollcommand=scrollbar.set, state=DISABLED)
+    text.grid(row=0, column=0, sticky=N+S+W+E)
+    scrollbar.grid(row=0, column=1, sticky=N+S)
+    frame.rowconfigure(0, weight=1)
+    frame.columnconfigure(0, weight=1)
+    return text
 
 # main screen 'new' button action
 # brings up individual screen
@@ -173,21 +201,49 @@ def groupClick(data):
     e.focus_set()
     e.bind('<Return>', lambda _: (addGroup(data, s.get()), popup.destroy()))
 
-# uses mouse location in order to display availability
-def rootHover(event, data):
-    if not data.show_availability.get():
-        return
-    x, y = event.x, event.y
-    r = (x - data.leftmargin) // data.cellwidth
-    c = (y - data.margin) // data.cellheight
+def scheduleCellFromEvent(event, data):
+    r = (event.x - data.leftmargin) // data.cellwidth
+    c = (event.y - data.margin) // data.cellheight
+    if 0 <= r < data.rows and 0 <= c < data.cols:
+        return r, c
+    return None
+
+def setAvailabilityPanel(data, r=None, c=None):
     free = ""
     busy = ""
-    cur_sel = set(map(lambda i: data.names[i], data.namelist.curselection()))
-    if (0 <= r < data.rows and 0 <= c < data.cols):
+    if r is not None and c is not None:
+        cur_sel = set(map(lambda i: data.names[i], data.namelist.curselection()))
         free = "\n".join(cur_sel & data.week[r][c])
         busy = "\n".join(cur_sel - data.week[r][c])
-    data.freeNames.set(free)
-    data.busyNames.set(busy)
+    setTextContent(data.freeNames, free)
+    setTextContent(data.busyNames, busy)
+
+def setTextContent(text, content):
+    text.configure(state=NORMAL)
+    text.delete('1.0', END)
+    text.insert('1.0', content)
+    text.configure(state=DISABLED)
+
+# uses mouse location in order to display availability
+def rootHover(event, data):
+    if data.availability_locked:
+        return
+    cell = scheduleCellFromEvent(event, data)
+    if cell:
+        setAvailabilityPanel(data, *cell)
+    else:
+        setAvailabilityPanel(data)
+
+def rootClick(event, data):
+    cell = scheduleCellFromEvent(event, data)
+    if cell:
+        data.availability_locked = True
+        setAvailabilityPanel(data, *cell)
+        data.availabilityStatus.set("Locked")
+    else:
+        data.availability_locked = False
+        data.availabilityStatus.set("")
+        setAvailabilityPanel(data)
     
 
 # draws main window
@@ -309,39 +365,6 @@ def loadics(data, fname=None):
     selectAvailableSlotsExceptBusy(data, busy_slots)
 
 
-#---------------------#
-# Availability Window #
-#---------------------#
-# hide/show toggled
-def toggledAvailabilityShow(data):
-    if data.show_availability.get():
-        createAvailabilityWindow(data)
-    else:
-        destroyAvailabilityWindow(data)
-
-def destroyAvailabilityWindow(data):
-    data.show_availability.set(False)
-    data.availability_window.destroy()
-        
-# create window
-def createAvailabilityWindow(data):
-    data.show_availability.set(True)
-    data.freeNames = StringVar()
-    data.busyNames = StringVar()
-    data.availability_window = Toplevel(data.root, background='white')
-    data.availability_window.protocol("WM_DELETE_WINDOW",
-                                      lambda: destroyAvailabilityWindow(data))
-    data.availability_window.minsize(300, 750)
-    Label(data.availability_window, text="Available",
-          font="lucida-grande 14 bold").grid(row=0, column=0, sticky=E+W)
-    Label(data.availability_window, textvar=data.freeNames).grid(row=1, column=0, sticky=N+E+W)
-    Label(data.availability_window, text="Unavailable",
-          font="lucida-grande 14 bold").grid(row=0, column=1, sticky=E+W)
-    Label(data.availability_window, textvar=data.busyNames).grid(row=1, column=1, sticky=N+E+W)
-    data.availability_window.columnconfigure(0, weight=1)
-    data.availability_window.columnconfigure(1, weight=1)
-    
-
 # runs overall application
 def run(width=300, height=300):
     # Set up data and call init
@@ -363,6 +386,7 @@ def run(width=300, height=300):
     
     # set up events
     root.bind("<Motion>", lambda event: rootHover(event, data))
+    root.bind("<Button-1>", lambda event: rootClick(event, data))
     
     # and launch the app
     root.mainloop()  # blocks until window is closed
