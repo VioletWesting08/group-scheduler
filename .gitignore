@@ -1,2 +1,4 @@
 *.pickle
 .venv/
+__pycache__/
+*.pyc
