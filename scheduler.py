@@ -1,5 +1,5 @@
 from tkinter import *
-from tkinter import filedialog
+from tkinter import filedialog, messagebox
 import pickle
 from math import log
 from matplotlib import colormaps
@@ -87,15 +87,77 @@ def create_buttons(data):
 def create_list(data):
     name_list = Listbox(data.root, selectmode=EXTENDED, exportselection=0)
     scrollbar = Scrollbar(data.root, orient=VERTICAL)
+    data.name_context_menu = Menu(data.root, tearoff=0)
     data.name_list = name_list
     name_list.grid(row=1, column=3, pady=(data.margin, 15), padx=data.margin,
                   sticky=N+S)
     scrollbar.grid(row=1, column=3, padx=(data.margin, data.margin-15),
                    pady=(data.margin, 15), sticky=N+S+E)
     name_list.bind('<<ListboxSelect>>', lambda _: redraw_root(data.canvas, data))
+    name_list.bind('<Button-3>', lambda event: show_name_context_menu(event, data))
     data.list_created = True
     name_list.config(yscrollcommand=scrollbar.set)
     scrollbar.config(command=name_list.yview)
+
+def show_name_context_menu(event, data):
+    if data.name_list.size() == 0:
+        return
+    index = data.name_list.nearest(event.y)
+    bounds = data.name_list.bbox(index)
+    if bounds is None or not bounds[1] <= event.y < bounds[1] + bounds[3]:
+        return
+    if index not in data.name_list.curselection():
+        data.name_list.selection_clear(0, END)
+        data.name_list.selection_set(index)
+    selected_count = len(data.name_list.curselection())
+    label = 'Delete selected name' if selected_count == 1 else (
+        f'Delete {selected_count} selected names'
+    )
+    data.name_context_menu.delete(0, END)
+    data.name_context_menu.add_command(
+        label=label,
+        command=lambda: confirm_delete_names(data)
+    )
+    data.name_context_menu.tk_popup(event.x_root, event.y_root)
+
+def confirm_delete_names(data):
+    indices = list(map(int, data.name_list.curselection()))
+    if not indices:
+        return
+    names = [data.names[index] for index in indices]
+    if len(names) == 1:
+        prompt = f'Delete {names[0]} and their schedule?'
+    else:
+        prompt = (
+            f'Delete these {len(names)} people and their schedules?\n\n'
+            + '\n'.join(names)
+        )
+    if messagebox.askyesno(
+        'Delete selected names',
+        prompt,
+        parent=data.root
+    ):
+        delete_names(data, indices)
+
+def delete_names(data, indices):
+    deleted_indices = set(indices)
+    deleted_names = {data.names[index] for index in deleted_indices}
+    old_to_new = {}
+    remaining_names = []
+    for old_index, name in enumerate(data.names):
+        if old_index not in deleted_indices:
+            old_to_new[old_index] = len(remaining_names)
+            remaining_names.append(name)
+    data.names = remaining_names
+    for index in sorted(deleted_indices, reverse=True):
+        data.name_list.delete(index)
+    for day in data.week:
+        for slot in day:
+            slot.difference_update(deleted_names)
+    for group, members in data.groups.items():
+        data.groups[group] = [old_to_new[member] for member in members
+                              if member in old_to_new]
+    redraw_root(data.canvas, data)
 
 def create_availability_panel(data):
     data.availability_status = StringVar()
